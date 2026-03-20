@@ -1,0 +1,24 @@
+{
+  "name": "nostr-web-pulse-functions",
+  "version": "0.1.0",
+  "private": true,
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions"
+  },
+  "engines": {
+    "node": "20"
+  },
+  "dependencies": {
+    "firebase-admin": "^13",
+    "firebase-functions": "^6",
+    "nostr-tools": "^2",
+    "ws": "^8"
+  },
+  "devDependencies": {
+    "@types/ws": "^8",
+    "typescript": "^5"
+  }
+}
