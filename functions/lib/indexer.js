@@ -227,8 +227,8 @@ async function runIndexer(sincReaction, sinceZap) {
     return { reactionsWritten, zapsWritten };
 }
 exports.hourlyIndexer = (0, scheduler_1.onSchedule)({
-    schedule: 'every 1 hours',
-    timeoutSeconds: 540,
+    schedule: 'every 5 minutes',
+    timeoutSeconds: 360,
     memory: '512MiB',
 }, async () => {
     await runIndexer();

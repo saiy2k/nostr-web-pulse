@@ -6,11 +6,18 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "build:functions": "npm run build --prefix functions",
+    "deploy:hosting": "npm run build && npx firebase-tools deploy --only hosting",
+    "deploy:function:hourlyIndexer": "npm run build:functions && npx firebase-tools deploy --only functions:nostr-web-pulse:hourlyIndexer",
+    "deploy:function:seedFirestore": "npm run build:functions && npx firebase-tools deploy --only functions:nostr-web-pulse:seedFirestore",
+    "deploy:function:seedByPubkey": "npm run build:functions && npx firebase-tools deploy --only functions:nostr-web-pulse:seedByPubkey",
+    "deploy:functions": "npm run deploy:function:hourlyIndexer && npm run deploy:function:seedFirestore && npm run deploy:function:seedByPubkey"
   },
   "dependencies": {
     "firebase": "^12.10.0",
     "next": "16.1.6",
+    "nostr-components": "^0.6.1",
     "nostr-tools": "^2.23.3",
     "react": "19.2.3",
     "react-dom": "19.2.3"

@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-(globalThis as any).WebSocket = WebSocket;
+(globalThis as unknown as { WebSocket: typeof WebSocket }).WebSocket = WebSocket;
 
 import { SimplePool, type Filter, type Event as NostrEvent } from 'nostr-tools';
 import * as crypto from 'crypto';
@@ -185,7 +185,6 @@ export function parseZapReceiptEvent(event: NostrEvent): ParsedZap | null {
 export async function fetchEvents(
   filter: Filter,
   relays: string[] = DEFAULT_RELAYS,
-  timeoutMs: number = 15000,
 ): Promise<NostrEvent[]> {
   const pool = new SimplePool();
   try {

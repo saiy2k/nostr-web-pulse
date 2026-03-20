@@ -1,8 +1,25 @@
 @import "tailwindcss";
 
+/* Class-based dark variant so `dark:*` utilities follow <html class="dark"> */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+/*
+ * nostr-components: borderless like/zap hosts.
+ */
+nostr-like-button,
+nostr-zap-button {
+  --nostrc-border-width: 0 !important;
+  --nostrc-color-border: transparent !important;
+  --nostrc-theme-border: transparent !important;
+  --nostrc-like-btn-border: none !important;
+  --nostrc-like-btn-hover-border: none !important;
+  --nostrc-zap-btn-border: none !important;
+  --nostrc-zap-btn-hover-border: none !important;
 }
 
 @theme inline {
@@ -12,11 +29,8 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html.dark {
+  color-scheme: dark;
 }
 
 body {

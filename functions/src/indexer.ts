@@ -240,8 +240,8 @@ export async function runIndexer(
 
 export const hourlyIndexer = onSchedule(
   {
-    schedule: 'every 1 hours',
-    timeoutSeconds: 540,
+    schedule: 'every 5 minutes',
+    timeoutSeconds: 360,
     memory: '512MiB',
   },
   async () => {

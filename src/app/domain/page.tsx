@@ -12,6 +12,7 @@ import {
   getReactionsForUrl,
   getZapsForUrl,
   formatSats,
+  pubkeyToNpub,
   truncateNpub,
   timeAgo,
 } from '@/lib/firebase';
@@ -23,6 +24,21 @@ import ZapBadge from '../components/ZapBadge';
 import { Timestamp } from 'firebase/firestore';
 
 type Period = 1 | 7 | 30;
+
+type UrlSortField = 'totalZapAmountMsats' | 'totalZaps' | 'totalReactions' | 'lastActivity';
+
+function UrlSortArrow({
+  field,
+  current,
+  dir,
+}: {
+  field: UrlSortField;
+  current: UrlSortField;
+  dir: 'asc' | 'desc';
+}) {
+  if (field !== current) return null;
+  return <span className="ml-1 text-xs">{dir === 'desc' ? '\u25BC' : '\u25B2'}</span>;
+}
 
 interface UrlReactionData {
   reactions: ReactionDoc[];
@@ -44,13 +60,19 @@ function DomainContent() {
   const [loading, setLoading] = useState(true);
   const [expandedUrls, setExpandedUrls] = useState<Set<string>>(new Set());
   const [urlReactionData, setUrlReactionData] = useState<Record<string, UrlReactionData>>({});
+  const [urlSortField, setUrlSortField] = useState<UrlSortField>('totalZapAmountMsats');
+  const [urlSortDir] = useState<'asc' | 'desc'>('desc');
 
   const fetchData = useCallback(async () => {
     if (!domainName) return;
+    // Avoid synchronous state updates during the effect call path.
+    // (This component is called from `useEffect`, which some lint rules
+    // flag when setState happens before the first await.)
+    await Promise.resolve();
     setLoading(true);
     const [doc, urlList, r, z] = await Promise.all([
       getDomainDoc(domainName),
-      getUrlsForDomain(domainName),
+      getUrlsForDomain(domainName, 50, urlSortField, urlSortDir),
       getLatestReactions({ sinceDaysAgo: period, domain: domainName }),
       getLatestZaps({ sinceDaysAgo: period, domain: domainName }),
     ]);
@@ -59,9 +81,13 @@ function DomainContent() {
     setReactions(r);
     setZaps(z);
     setLoading(false);
-  }, [domainName, period]);
+  }, [domainName, period, urlSortField, urlSortDir]);
 
   useEffect(() => {
+    // This component's `fetchData` updates local React state as a result of
+    // external (Firestore) reads. ESLint's conservative static analysis
+    // flags this pattern, but it's intentional here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, [fetchData]);
 
@@ -171,10 +197,30 @@ function DomainContent() {
             <thead className="bg-foreground/[0.03]">
               <tr>
                 <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">URL Path</th>
-                <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-orange-500">Total sats</th>
-                <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-orange-500">Zaps</th>
-                <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">Reactions</th>
-                <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider hidden sm:table-cell">Last Active</th>
+                    <th
+                      className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-orange-500 cursor-pointer select-none whitespace-nowrap"
+                      onClick={() => setUrlSortField('totalZapAmountMsats')}
+                    >
+                      Total sats <UrlSortArrow field="totalZapAmountMsats" current={urlSortField} dir={urlSortDir} />
+                    </th>
+                    <th
+                      className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-orange-500 cursor-pointer select-none whitespace-nowrap"
+                      onClick={() => setUrlSortField('totalZaps')}
+                    >
+                      Zaps <UrlSortArrow field="totalZaps" current={urlSortField} dir={urlSortDir} />
+                    </th>
+                    <th
+                      className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none whitespace-nowrap"
+                      onClick={() => setUrlSortField('totalReactions')}
+                    >
+                      Reactions <UrlSortArrow field="totalReactions" current={urlSortField} dir={urlSortDir} />
+                    </th>
+                    <th
+                      className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider hidden sm:table-cell cursor-pointer select-none whitespace-nowrap"
+                      onClick={() => setUrlSortField('lastActivity')}
+                    >
+                      Last Active <UrlSortArrow field="lastActivity" current={urlSortField} dir={urlSortDir} />
+                    </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-foreground/5">
@@ -260,9 +306,17 @@ function DomainContent() {
                                     const profile = data.profiles[item.pubkey];
                                     const displayName = profile?.name || truncateNpub(item.pubkey);
                                     const avatar = profile?.picture;
+                                    const npub = pubkeyToNpub(item.pubkey);
+                                    const profileUrl = `https://njump.me/${npub}`;
                                     return (
                                       <div key={idx} className="flex items-center gap-3 px-6 py-2 text-sm">
-                                        <span className="flex items-center gap-2 min-w-[160px]" title={truncateNpub(item.pubkey)}>
+                                        <a
+                                          href={profileUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="flex items-center gap-2 min-w-[160px] hover:opacity-90 transition-opacity"
+                                          title={truncateNpub(item.pubkey)}
+                                        >
                                           {avatar ? (
                                             <img
                                               src={avatar}
@@ -276,7 +330,7 @@ function DomainContent() {
                                           <span className={`truncate text-xs ${profile?.name ? 'text-foreground/80' : 'font-mono text-foreground/50'}`}>
                                             {displayName}
                                           </span>
-                                        </span>
+                                        </a>
                                         <span className="flex-shrink-0">
                                           {item.type === 'reaction' ? (
                                             <ReactionBadge content={item.content} reactionType={item.reactionType} />

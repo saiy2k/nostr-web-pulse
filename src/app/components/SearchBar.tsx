@@ -2,22 +2,12 @@
 
 import { useRef, useCallback } from 'react';
 
-type SortField = 'totalZapAmountMsats' | 'totalZaps' | 'totalReactions' | 'dislikes' | 'emojis' | 'domain';
-
 interface SearchBarProps {
   onSearch: (term: string) => void;
-  onSort: (field: SortField) => void;
-  sortField: SortField;
+  // Sort control lives on column headers now.
 }
 
-const SORT_OPTIONS: { value: SortField; label: string }[] = [
-  { value: 'totalZapAmountMsats', label: 'Total Sats' },
-  { value: 'totalZaps', label: 'Zaps' },
-  { value: 'totalReactions', label: 'Reactions' },
-  { value: 'domain', label: 'A-Z' },
-];
-
-export default function SearchBar({ onSearch, onSort, sortField }: SearchBarProps) {
+export default function SearchBar({ onSearch }: SearchBarProps) {
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const handleInput = useCallback(
@@ -48,17 +38,6 @@ export default function SearchBar({ onSearch, onSort, sortField }: SearchBarProp
           className="w-full pl-10 pr-4 py-2 rounded-lg border border-foreground/10 bg-foreground/[0.02] text-sm focus:outline-none focus:border-foreground/30"
         />
       </div>
-      <select
-        value={sortField}
-        onChange={e => onSort(e.target.value as SortField)}
-        className="px-3 py-2 rounded-lg border border-foreground/10 bg-foreground/[0.02] text-sm focus:outline-none focus:border-foreground/30"
-      >
-        {SORT_OPTIONS.map(opt => (
-          <option key={opt.value} value={opt.value}>
-            Sort: {opt.label}
-          </option>
-        ))}
-      </select>
     </div>
   );
 }

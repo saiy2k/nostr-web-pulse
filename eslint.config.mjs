@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Backend build artifacts (generated JS) - avoid linting generated code.
+    "functions/lib/**",
   ]),
 ]);
 

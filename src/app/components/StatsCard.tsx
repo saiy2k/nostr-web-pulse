@@ -17,11 +17,11 @@ export default function StatsCard({
   const variants = {
     default: 'border-foreground/10 bg-foreground/[0.02]',
     orange:
-      'border-orange-500/30 bg-orange-50 dark:bg-orange-950/30',
+      'border-orange-500/60 bg-orange-100/70 dark:bg-orange-950/50',
     'orange-hero':
-      'border-orange-500/40 bg-orange-50 dark:bg-orange-950/30 col-span-2 sm:col-span-1',
+      'border-orange-600/70 bg-orange-100/80 dark:bg-orange-950/60 col-span-2 sm:col-span-1',
   };
-  const iconColor = variant === 'default' ? 'text-foreground/50' : 'text-orange-500';
+  const iconColor = variant === 'default' ? 'text-foreground/50' : 'text-orange-600';
   const valueSize = variant === 'orange-hero' ? 'text-3xl' : 'text-2xl';
 
   return (

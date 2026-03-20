@@ -14,7 +14,7 @@ import SearchBar from './components/SearchBar';
 import DomainTable from './components/DomainTable';
 import LatestActivity from './components/LatestActivity';
 
-type SortField = 'totalZapAmountMsats' | 'totalZaps' | 'totalReactions' | 'dislikes' | 'emojis' | 'domain';
+type SortField = 'totalZapAmountMsats' | 'totalZaps' | 'totalReactions' | 'dislikes' | 'emojis' | 'domain' | 'updatedAt';
 type Period = 1 | 7 | 30;
 
 export default function Dashboard() {
@@ -31,7 +31,7 @@ export default function Dashboard() {
   const fetchDomains = useCallback(async () => {
     const data = await getDomains({
       sortBy: sortField,
-      sortDir: searchTerm ? 'asc' : sortDir,
+      sortDir: sortDir,
       searchTerm: searchTerm || undefined,
     });
     setDomains(data);
@@ -47,8 +47,19 @@ export default function Dashboard() {
   }, [period]);
 
   useEffect(() => {
-    Promise.all([fetchDomains(), fetchActivity(), getGlobalStats().then(setStats)])
-      .finally(() => setInitialLoading(false));
+    let cancelled = false;
+    (async () => {
+      try {
+        const [, , stats] = await Promise.all([fetchDomains(), fetchActivity(), getGlobalStats()]);
+        if (!cancelled) setStats(stats);
+      } finally {
+        if (!cancelled) setInitialLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [fetchDomains, fetchActivity]);
 
   const handleSort = useCallback((field: string) => {
@@ -128,7 +139,7 @@ export default function Dashboard() {
             onPeriodChange={setPeriod}
           />
 
-          <SearchBar onSearch={setSearchTerm} onSort={handleSort} sortField={sortField} />
+          <SearchBar onSearch={setSearchTerm} />
 
           <DomainTable
             domains={domains}

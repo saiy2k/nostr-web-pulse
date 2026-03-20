@@ -40,7 +40,7 @@ export default function DomainTable({ domains, sortField, sortDir, onSort }: Dom
               Zaps <SortArrow field="totalZaps" current={sortField} dir={sortDir} />
             </th>
             <th className={th} onClick={() => onSort('totalReactions')}>
-              Likes <SortArrow field="totalReactions" current={sortField} dir={sortDir} />
+              Reactions <SortArrow field="totalReactions" current={sortField} dir={sortDir} />
             </th>
             <th className={`${th} hidden md:table-cell`} onClick={() => onSort('dislikes')}>
               Dislikes <SortArrow field="dislikes" current={sortField} dir={sortDir} />
@@ -48,7 +48,9 @@ export default function DomainTable({ domains, sortField, sortDir, onSort }: Dom
             <th className={`${th} hidden md:table-cell`} onClick={() => onSort('emojis')}>
               Emoji <SortArrow field="emojis" current={sortField} dir={sortDir} />
             </th>
-            <th className={`${th} hidden sm:table-cell`}>Last Active</th>
+            <th className={`${th} hidden sm:table-cell`} onClick={() => onSort('updatedAt')}>
+              Last Active <SortArrow field="updatedAt" current={sortField} dir={sortDir} />
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-foreground/5">
@@ -69,7 +71,7 @@ export default function DomainTable({ domains, sortField, sortDir, onSort }: Dom
               <td className="px-3 py-3 text-orange-500">
                 {d.totalZaps || 0}
               </td>
-              <td className="px-3 py-3">{d.likes || 0}</td>
+              <td className="px-3 py-3">{d.totalReactions || 0}</td>
               <td className="px-3 py-3 hidden md:table-cell">{d.dislikes || 0}</td>
               <td className="px-3 py-3 hidden md:table-cell">{d.emojis || 0}</td>
               <td className="px-3 py-3 hidden sm:table-cell text-foreground/50 text-xs">

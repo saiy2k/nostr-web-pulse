@@ -1,7 +1,9 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactionDoc, ZapDoc } from '@/lib/types';
-import { timeAgo, truncatePubkey } from '@/lib/firebase';
+import { fetchProfiles, type NostrProfile } from '@/lib/nostr';
+import { pubkeyToNpub, timeAgo, truncateNpub } from '@/lib/firebase';
 import ZapBadge from './ZapBadge';
 import ReactionBadge from './ReactionBadge';
 import { Timestamp } from 'firebase/firestore';
@@ -21,8 +23,8 @@ type ActivityItem =
 
 function toMillis(t: Timestamp | { toMillis?: () => number; seconds?: number }): number {
   if (t instanceof Timestamp) return t.toMillis();
-  if (typeof (t as any).toMillis === 'function') return (t as any).toMillis();
-  if ((t as any).seconds) return (t as any).seconds * 1000;
+  if (typeof t.toMillis === 'function') return t.toMillis();
+  if (typeof t.seconds === 'number') return t.seconds * 1000;
   return 0;
 }
 
@@ -32,6 +34,32 @@ export default function LatestActivity({
   selectedPeriod,
   onPeriodChange,
 }: LatestActivityProps) {
+  const uniquePubkeys = useMemo(() => {
+    const pubkeys = [
+      ...zaps.map(z => z.senderPubkey),
+      ...reactions.map(r => r.pubkey),
+    ].filter(Boolean);
+    return [...new Set(pubkeys)];
+  }, [reactions, zaps]);
+
+  const [profiles, setProfiles] = useState<Record<string, NostrProfile>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (uniquePubkeys.length === 0) {
+        setProfiles({});
+        return;
+      }
+      const res = await fetchProfiles(uniquePubkeys);
+      if (!cancelled) setProfiles(res);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [uniquePubkeys]);
+
   const items: ActivityItem[] = [
     ...zaps.map(z => ({ type: 'zap' as const, data: z, ts: toMillis(z.createdAt) })),
     ...reactions.map(r => ({ type: 'reaction' as const, data: r, ts: toMillis(r.createdAt) })),
@@ -39,6 +67,43 @@ export default function LatestActivity({
 
   const periods: Period[] = [1, 7, 30];
   const periodLabels: Record<Period, string> = { 1: '1D', 7: '7D', 30: '30D' };
+
+  const renderUser = (pubkey: string) => {
+    const profile = profiles[pubkey];
+    const npub = pubkeyToNpub(pubkey);
+    const picture = profile?.picture || '';
+    const label = profile?.name || truncateNpub(pubkey);
+
+    return (
+      <a
+        href={`https://njump.me/${npub}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-2 min-w-[160px] hover:opacity-90 transition-opacity"
+        title={truncateNpub(pubkey)}
+      >
+        {picture ? (
+          <img
+            src={picture}
+            alt=""
+            className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+            onError={e => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+        ) : (
+          <span className="w-6 h-6 rounded-full bg-foreground/10 flex-shrink-0" />
+        )}
+        <span
+          className={`truncate text-xs ${
+            profile?.name ? 'text-foreground/80' : 'font-mono text-foreground/50'
+          }`}
+        >
+          {label}
+        </span>
+      </a>
+    );
+  };
 
   return (
     <section className="mb-8">
@@ -83,9 +148,7 @@ export default function LatestActivity({
                 >
                   {z.url}
                 </a>
-                <span className="text-xs text-foreground/40 shrink-0">
-                  {truncatePubkey(z.senderPubkey)}
-                </span>
+                {renderUser(z.senderPubkey)}
                 <span className="text-xs text-foreground/30 shrink-0">
                   {timeAgo(z.createdAt as Timestamp)}
                 </span>
@@ -108,9 +171,7 @@ export default function LatestActivity({
               >
                 {r.url}
               </a>
-              <span className="text-xs text-foreground/40 shrink-0">
-                {truncatePubkey(r.pubkey)}
-              </span>
+              {renderUser(r.pubkey)}
               <span className="text-xs text-foreground/30 shrink-0">
                 {timeAgo(r.createdAt as Timestamp)}
               </span>

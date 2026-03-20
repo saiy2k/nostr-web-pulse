@@ -27,7 +27,7 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 export const db = getFirestore(app);
 
-type SortField = 'totalZapAmountMsats' | 'totalZaps' | 'totalReactions' | 'dislikes' | 'emojis' | 'domain';
+type SortField = 'totalZapAmountMsats' | 'totalZaps' | 'totalReactions' | 'dislikes' | 'emojis' | 'domain' | 'updatedAt';
 
 export async function getDomains(options: {
   sortBy?: SortField;
@@ -57,13 +57,68 @@ export async function getDomains(options: {
   }
 
   const snap = await getDocs(q);
-  return snap.docs.map(d => ({ ...d.data() } as DomainDoc));
+  const results = snap.docs.map(d => ({ ...d.data() } as DomainDoc));
+
+  // Firestore range filtering above doesn't include `orderBy`, so we
+  // sort client-side to keep header-driven sorting consistent.
+  if (searchTerm) {
+    const compare = (a: DomainDoc, b: DomainDoc): number => {
+      if (sortBy === 'domain') {
+        const res = a.domain.localeCompare(b.domain);
+        return sortDir === 'desc' ? -res : res;
+      }
+      if (sortBy === 'updatedAt') {
+        const av = a.updatedAt?.toMillis?.() ?? 0;
+        const bv = b.updatedAt?.toMillis?.() ?? 0;
+        return sortDir === 'desc' ? bv - av : av - bv;
+      }
+
+      let av = 0;
+      let bv = 0;
+      switch (sortBy) {
+        case 'totalZapAmountMsats':
+          av = a.totalZapAmountMsats || 0;
+          bv = b.totalZapAmountMsats || 0;
+          break;
+        case 'totalZaps':
+          av = a.totalZaps || 0;
+          bv = b.totalZaps || 0;
+          break;
+        case 'totalReactions':
+          av = a.totalReactions || 0;
+          bv = b.totalReactions || 0;
+          break;
+        case 'dislikes':
+          av = a.dislikes || 0;
+          bv = b.dislikes || 0;
+          break;
+        case 'emojis':
+          av = a.emojis || 0;
+          bv = b.emojis || 0;
+          break;
+        default:
+          // Should never happen because 'domain' and 'updatedAt' are handled above.
+          return 0;
+      }
+
+      return sortDir === 'desc' ? bv - av : av - bv;
+    };
+
+    results.sort(compare);
+  }
+
+  return results;
 }
 
 export async function getUrlsForDomain(
   domain: string,
   limit = 50,
+  sortBy: 'totalZapAmountMsats' | 'totalZaps' | 'totalReactions' | 'lastActivity' = 'totalZapAmountMsats',
+  sortDir: 'asc' | 'desc' = 'desc',
 ): Promise<UrlDoc[]> {
+  // NOTE: Firestore requires an index for most compound `orderBy` combinations.
+  // To make sorting reliable even when those indexes haven't propagated yet,
+  // we fetch using a stable order and then sort client-side.
   const q = query(
     collection(db, 'Nostr_urls'),
     where('domain', '==', domain),
@@ -71,7 +126,41 @@ export async function getUrlsForDomain(
     firestoreLimit(limit),
   );
   const snap = await getDocs(q);
-  return snap.docs.map(d => ({ ...d.data() } as UrlDoc));
+  const results = snap.docs.map(d => ({ ...d.data() } as UrlDoc));
+
+  if (sortBy === 'totalZapAmountMsats') {
+    if (sortDir === 'desc') return results;
+    // If ascending requested, flip locally.
+    return [...results].sort((a, b) => (a.totalZapAmountMsats || 0) - (b.totalZapAmountMsats || 0));
+  }
+
+  const getLastActivityMs = (u: UrlDoc): number => u.lastActivity ? u.lastActivity.toMillis() : 0;
+
+  const compare = (a: UrlDoc, b: UrlDoc): number => {
+    let av = 0;
+    let bv = 0;
+    switch (sortBy) {
+      case 'totalZaps':
+        av = a.totalZaps || 0;
+        bv = b.totalZaps || 0;
+        break;
+      case 'totalReactions':
+        av = a.totalReactions || 0;
+        bv = b.totalReactions || 0;
+        break;
+      case 'lastActivity':
+        av = getLastActivityMs(a);
+        bv = getLastActivityMs(b);
+        break;
+      default:
+        return 0;
+    }
+
+    // Desc sorts highest first.
+    return sortDir === 'desc' ? bv - av : av - bv;
+  };
+
+  return [...results].sort(compare);
 }
 
 export async function getDomainDoc(domain: string): Promise<DomainDoc | null> {

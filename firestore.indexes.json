@@ -9,6 +9,30 @@
       ]
     },
     {
+      "collectionGroup": "Nostr_urls",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "domain", "order": "ASCENDING" },
+        { "fieldPath": "totalZaps", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "Nostr_urls",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "domain", "order": "ASCENDING" },
+        { "fieldPath": "totalReactions", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "Nostr_urls",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "domain", "order": "ASCENDING" },
+        { "fieldPath": "lastActivity", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "Nostr_reactions",
       "queryScope": "COLLECTION",
       "fields": [

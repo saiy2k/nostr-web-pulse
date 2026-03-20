@@ -189,7 +189,7 @@ function parseZapReceiptEvent(event) {
         createdAt: event.created_at,
     };
 }
-async function fetchEvents(filter, relays = exports.DEFAULT_RELAYS, timeoutMs = 15000) {
+async function fetchEvents(filter, relays = exports.DEFAULT_RELAYS) {
     const pool = new nostr_tools_1.SimplePool();
     try {
         const events = await pool.querySync(relays, filter);
